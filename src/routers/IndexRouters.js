@@ -28,7 +28,30 @@ module.exports = function () {
                 collapseWhitespace: true,
                 removeComments: true,
                 minifyCSS: true,
-                ignoreCustomFragments: [/<%[\s\S]*?%>/] 
+                ignoreCustomFragments: [/<%[\s\S]*?%>/]
+            });
+
+            res.send(minifiedHtml);
+        });
+    });
+
+    router.get('/lobby/:gameCode', (req, res) => {
+        const gameCode = req.params.gameCode;
+
+        res.render('lobby', {
+            req,
+            res,
+            gameCode: gameCode
+        }, (err, html) => {
+            if (err) return res.status(500).send(err.message);
+
+            const obfuscatedHTML = obfuscateInlineScripts(html);
+
+            const minifiedHtml = minify(obfuscatedHTML, {
+                collapseWhitespace: true,
+                removeComments: true,
+                minifyCSS: true,
+                ignoreCustomFragments: [/<%[\s\S]*?%>/]
             });
 
             res.send(minifiedHtml);
