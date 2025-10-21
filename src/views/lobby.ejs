@@ -30,7 +30,8 @@
                     <div class="bg-gray-800/80 rounded-2xl p-6 border border-purple-500/30">
                         <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                             <div class="text-left">
-                                <h2 class="text-2xl font-bold text-white mb-2">Quiz: General Knowledge</h2> <div class="flex items-center gap-4 text-gray-300">
+                                    <h2 id="quiz-title" class="text-2xl font-bold text-white mb-2">Memuat...</h2>
+                                    <div class="flex items-center gap-4 text-gray-300">
                                     <div class="flex items-center gap-2">
                                         <i data-feather="hash" class="w-4 h-4"></i>
                                         <span class="font-mono text-lg"><%= gameCode %></span>
@@ -43,13 +44,7 @@
                             </div>
                         </div>
                         
-                        <!-- Host Controls - Below Quiz Info -->
-                        <div id="hostControls" class="mt-4 hidden">
-                            <button id="startGame" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105">
-                                <i data-feather="play" class="inline w-5 h-5 mr-2"></i>
-                                Start Game
-                            </button>
-                        </div>
+                        <!-- Host Controls - Removed duplicate (moved to players panel) -->
                     </div>
                 </div>
             </div>
@@ -80,8 +75,8 @@
                         </div>
                         
                         <!-- Host Controls -->
-                        <div id="hostControls" class="mt-6 pt-6 border-t border-purple-500/30 hidden">
-                            <button id="startGame" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105">
+                        <div id="host-controls-section" class="mt-6 pt-6 border-t border-purple-500/30 hidden">
+                            <button id="start-game-btn" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105">
                                 <i data-feather="play" class="inline w-5 h-5 mr-2"></i>
                                 Start Game
                             </button>
@@ -108,9 +103,9 @@
         // --- Ambil Elemen DOM ---
         const playersGrid = document.getElementById('playersGrid');
         const playerCount = document.getElementById('playerCount');
-        const leaveBtn = document.getElementById('leaveBtn');
-        const startGame = document.getElementById('startGame');
-        const hostControls = document.getElementById('hostControls');
+    const leaveBtn = document.getElementById('leaveBtn');
+    const startGameBtn = document.getElementById('start-game-btn');
+    const hostControls = document.getElementById('host-controls-section');
 
         // --- State Lokal ---
         let localPlayers = [];
@@ -149,7 +144,7 @@
         // --- Event Listeners (Aksi Pengguna) ---
 
         // 1. Tombol "Start Game" (Host)
-        startGame.addEventListener('click', () => {
+        startGameBtn.addEventListener('click', () => {
             // Kirim perintah start ke server
             socket.emit('start_game', { code: gameCode });
         });
@@ -167,9 +162,15 @@
         socket.emit('join_lobby', { code: gameCode });
 
         // 2. Menerima update daftar pemain (karena ada yg join/leave/ready)
-        socket.on('player_list_update', (playerList) => {
-            console.log('Menerima update pemain:', playerList);
-            updatePlayersDisplay(playerList);
+            socket.on('lobby_update', (data) => {
+                console.log('Menerima update lobi:', data);
+                updatePlayersDisplay(data.players);
+            
+                // Update quiz title
+                if (data.quizTitle) {
+                    document.getElementById('quiz-title').textContent = data.quizTitle;
+                }
+            
             feather.replace();
         });
 

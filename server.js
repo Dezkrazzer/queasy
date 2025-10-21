@@ -247,7 +247,35 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         console.log(`> 💔 • Pengguna terputus: ${socket.id}`);
-        // TODO: Hapus pengguna dari room 'activeGames' jika dia ada di sana
+        
+            // Loop semua game untuk mencari socket yang terputus
+            for (const gameCode in activeGames) {
+                const game = activeGames[gameCode];
+            
+                // Cek apakah socket ini adalah host
+                if (game.hostId === socket.id) {
+                    console.log(`> 🚨 • Host terputus dari game ${gameCode}`);
+                    // Broadcast ke semua pemain bahwa host disconnect
+                    io.to(gameCode).emit('host_disconnected');
+                    // Hapus game
+                    delete activeGames[gameCode];
+                    return;
+                }
+            
+                // Cek apakah socket ini adalah pemain
+                const playerIndex = game.players.findIndex(p => p.id === socket.id);
+                if (playerIndex !== -1) {
+                    console.log(`> 👋 • Pemain ${game.players[playerIndex].name} keluar dari game ${gameCode}`);
+                    // Hapus pemain dari array
+                    game.players.splice(playerIndex, 1);
+                    // Broadcast update pemain ke lobi
+                    io.to(gameCode).emit('lobby_update', { 
+                        players: game.players,
+                        quizTitle: game.quizTitle || 'Quiz'
+                    });
+                    return;
+                }
+            }
     });
 
     // --- TAMBAHKAN LISTENER BARU DI SINI ---
@@ -272,6 +300,18 @@ io.on('connection', (socket) => {
             // Simpan username juga untuk ditampilkan di lobi
             const hostUsername = session.username || 'Host';
 
+                // Query judul quiz dari database
+                const [quizResults] = await db.query(
+                    'SELECT title FROM quizzes WHERE quiz_id = ?',
+                    [quiz_id]
+                );
+
+                if (quizResults.length === 0) {
+                    return socket.emit('error', { message: 'Quiz tidak ditemukan' });
+                }
+
+                const quizTitle = quizResults[0].title;
+
             const gameCode = generateGameCode();
             
             // Simpan session ke database
@@ -284,6 +324,7 @@ io.on('connection', (socket) => {
                 hostId: socket.id,
                 host_db_id: host_id,
                 quiz_id: quiz_id,
+                    quizTitle: quizTitle,
                 players: [
                     { id: socket.id, name: hostUsername, isHost: true }
                 ],
@@ -324,7 +365,10 @@ io.on('connection', (socket) => {
 
         // 4. Kirim daftar pemain terbaru ke SEMUA ORANG di lobi
         // Kita panggil ini di sini agar pemain baru langsung dapat daftar
-        io.to(gameCode).emit('player_list_update', game.players);
+            io.to(gameCode).emit('lobby_update', { 
+                players: game.players,
+                quizTitle: game.quizTitle || 'Quiz'
+            });
     });
 
     socket.on('start_game', async (data) => {
