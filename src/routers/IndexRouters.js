@@ -132,5 +132,31 @@ module.exports = function () {
         }
     });
 
+    // Rute Create Quiz (Protected)
+    router.get('/quiz/create', (req, res) => {
+        // Cek apakah host sudah login
+        if (!req.session || !req.session.host_id) {
+            return res.redirect('/login');
+        }
+
+        res.render('create-quiz', { 
+            req, 
+            res,
+            username: req.session.username
+        }, (err, html) => {
+            if (err) return res.status(500).send(err.message);
+
+            const obfuscatedHTML = obfuscateInlineScripts(html);
+            const minifiedHtml = minify(obfuscatedHTML, {
+                collapseWhitespace: true,
+                removeComments: true,
+                minifyCSS: true,
+                ignoreCustomFragments: [/<%[\s\S]*?%>/]
+            });
+
+            res.send(minifiedHtml);
+        });
+    });
+
     return router;
 }

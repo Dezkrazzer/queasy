@@ -134,6 +134,107 @@ app.get('/api/logout', (req, res) => {
     });
 });
 
+// Create Quiz (Protected)
+app.post('/api/quiz/create', async (req, res) => {
+    try {
+        // Cek autentikasi
+        if (!req.session || !req.session.host_id) {
+            return res.status(401).json({ 
+                success: false, 
+                error: 'Unauthorized - Silakan login terlebih dahulu' 
+            });
+        }
+
+        const host_id = req.session.host_id;
+        const { title, description, questions } = req.body;
+
+        // Validasi input
+        if (!title || !description || !questions || questions.length === 0) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Data tidak lengkap' 
+            });
+        }
+
+        // Validasi setiap pertanyaan
+        for (const question of questions) {
+            if (!question.question_text || !question.answers || question.answers.length < 2) {
+                return res.status(400).json({ 
+                    success: false, 
+                    error: 'Setiap pertanyaan harus memiliki minimal 2 jawaban' 
+                });
+            }
+
+            // Pastikan ada jawaban yang benar
+            const hasCorrectAnswer = question.answers.some(a => a.is_correct);
+            if (!hasCorrectAnswer) {
+                return res.status(400).json({ 
+                    success: false, 
+                    error: 'Setiap pertanyaan harus memiliki jawaban yang benar' 
+                });
+            }
+        }
+
+        // Mulai transaksi database
+        const connection = await db.getConnection();
+        
+        try {
+            await connection.beginTransaction();
+
+            // Insert quiz
+            const [quizResult] = await connection.query(
+                'INSERT INTO quizzes (host_id, title, description) VALUES (?, ?, ?)',
+                [host_id, title, description]
+            );
+
+            const newQuizId = quizResult.insertId;
+
+            // Insert questions dan answers
+            for (const question of questions) {
+                // Insert question
+                const [questionResult] = await connection.query(
+                    'INSERT INTO questions (quiz_id, question_text, time_limit) VALUES (?, ?, ?)',
+                    [newQuizId, question.question_text, question.time_limit]
+                );
+
+                const newQuestionId = questionResult.insertId;
+
+                // Insert answers
+                for (const answer of question.answers) {
+                    await connection.query(
+                        'INSERT INTO answers (question_id, answer_text, is_correct) VALUES (?, ?, ?)',
+                        [newQuestionId, answer.text, answer.is_correct ? 1 : 0]
+                    );
+                }
+            }
+
+            // Commit transaksi
+            await connection.commit();
+
+            res.json({ 
+                success: true, 
+                message: 'Kuis berhasil dibuat!',
+                quiz_id: newQuizId,
+                redirect: '/dashboard'
+            });
+
+        } catch (error) {
+            // Rollback jika terjadi error
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
+
+    } catch (error) {
+        console.error('Error saat membuat kuis:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Terjadi kesalahan server saat membuat kuis' 
+        });
+    }
+});
+
 // ===== END RUTE AUTENTIKASI =====
 
 
