@@ -1,0 +1,213 @@
+ @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+ * {
+     margin: 0;
+     padding: 0;
+     box-sizing: border-box;
+ }
+
+ nav {
+     background: rgba(17, 24, 39, 0.95);
+     backdrop-filter: blur(10px);
+     padding: 1rem 2rem;
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     position: fixed;
+     top: 0;
+     left: 0;
+     right: 0;
+     z-index: 1000;
+     border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+     min-height: 70px;
+     gap: 2rem;
+ }
+
+ .logo {
+     background: linear-gradient(135deg, #8b5cf6, #ec4899);
+     background-clip: text;
+     -webkit-background-clip: text;
+     -webkit-text-fill-color: transparent;
+     font-weight: 800;
+     font-size: 1.5rem;
+     font-family: 'Inter', sans-serif;
+     display: flex;
+     align-items: center;
+     text-decoration: none;
+ }
+
+ .nav-links {
+     display: flex;
+     gap: 2rem;
+     list-style: none;
+     margin: 0;
+     padding: 0;
+     align-items: center;
+     position: absolute;
+     left: 50%;
+     transform: translateX(-50%);
+ }
+
+ .nav-links a {
+     color: #e5e7eb;
+     text-decoration: none;
+     font-weight: 500;
+     transition: all 0.3s ease;
+     position: relative;
+     display: flex;
+     align-items: center;
+     gap: 0.5rem;
+ }
+
+ .nav-links a svg {
+     width: 18px;
+     height: 18px;
+ }
+
+ .nav-links a:hover {
+     color: #8b5cf6;
+ }
+
+ .nav-links a::after {
+     content: '';
+     position: absolute;
+     bottom: -5px;
+     left: 0;
+     width: 0;
+     height: 2px;
+     background: linear-gradient(135deg, #8b5cf6, #ec4899);
+     transition: width 0.3s ease;
+ }
+
+ .nav-links a:hover::after {
+     width: 100%;
+ }
+
+ .nav-right {
+     display: flex;
+     align-items: center;
+     gap: 1rem;
+ }
+
+ .login-btn {
+     background: linear-gradient(135deg, #8b5cf6, #ec4899);
+     padding: 0.5rem 1.5rem;
+     border-radius: 9999px;
+     color: white !important;
+     transition: all 0.3s ease;
+     display: inline-flex;
+     align-items: center;
+     gap: 0.5rem;
+     text-decoration: none;
+ }
+
+ .login-btn:hover {
+     transform: scale(1.05);
+     box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3);
+ }
+
+ .login-btn::after {
+     display: none;
+ }
+
+ .mobile-login-item {
+     display: none;
+ }
+
+ .mobile-menu-btn {
+     display: none;
+     background: none;
+     border: none;
+     color: #e5e7eb;
+     cursor: pointer;
+     font-size: 1.5rem;
+     padding: 0.5rem;
+     z-index: 1001;
+     align-items: center;
+ }
+
+ .mobile-menu-btn svg {
+     width: 24px;
+     height: 24px;
+ }
+
+ @media (max-width: 768px) {
+     nav {
+         padding: 1rem 1.5rem;
+     }
+
+     .mobile-menu-btn {
+         display: flex;
+     }
+
+     .nav-links {
+         position: fixed;
+         top: 70px;
+         left: 50%;
+         right: auto;
+         width: 100%;
+         background: rgba(17, 24, 39, 0.98);
+         backdrop-filter: blur(10px);
+         flex-direction: column;
+         padding: 2rem;
+         gap: 1.5rem;
+         transform: translate(-50%, -100%);
+         opacity: 0;
+         visibility: hidden;
+         transition: transform 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
+         max-height: calc(100vh - 70px);
+         overflow-y: auto;
+         border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+         z-index: 999;
+     }
+
+     .nav-links.active {
+         transform: translate(-50%, 0);
+         opacity: 1;
+         visibility: visible;
+     }
+
+     .nav-links li {
+         width: 100%;
+         text-align: center;
+     }
+
+     .nav-links a {
+         display: flex;
+         justify-content: center;
+         padding: 1rem;
+         font-size: 1.1rem;
+     }
+
+     .nav-links a::after {
+         bottom: 0;
+         left: 50%;
+         transform: translateX(-50%);
+     }
+
+     .nav-links a:hover::after {
+         width: 80%;
+     }
+
+     .mobile-login-item {
+         display: block;
+         margin-top: 1rem;
+         padding-top: 1.5rem;
+         border-top: 1px solid rgba(139, 92, 246, 0.3);
+     }
+
+     .mobile-login-item .login-btn {
+         justify-content: center;
+         width: 100%;
+         padding: 0.75rem 1.5rem;
+     }
+
+     .desktop-login {
+         display: none;
+     }
+
+     .nav-right {
+         display: flex;
+         gap: 0.5rem;
+     }
+ }

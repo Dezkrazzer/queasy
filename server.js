@@ -2,6 +2,7 @@ const express = require("express");
 const app = express();
 const session = require('express-session');
 const path = require('path');
+require('dotenv').config();
 
 const { json, urlencoded } = require("body-parser");
 
@@ -14,9 +15,9 @@ app.use(session({
 }));
 
 const staticFilesPath = path.join(__dirname, 'src', 'static');
-console.log('Express is serving static files from:', staticFilesPath); // Ini yang penting!
+console.log('Express is serving static files from:', staticFilesPath);
 
-app.use(express.static(staticFilesPath));
+app.use('/static', express.static(staticFilesPath));
 app.set('views', path.join(__dirname, 'src', 'views'));
 app.set('view engine', 'ejs');
 
