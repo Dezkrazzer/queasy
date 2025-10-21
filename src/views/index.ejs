@@ -6,7 +6,7 @@
     <title>Queasy - Interactive Quiz Platform</title>
 
     <link rel="stylesheet" href="/static/css/index.css">
-    
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
     <script src="https://unpkg.com/feather-icons"></script>
@@ -34,7 +34,14 @@
                     </p>
 
                     <!-- Game Code Input Section -->
-                    <div class="max-w-md mx-auto mb-8">
+                    <div class="max-w-md mx-auto mb-8 space-y-4">
+                        <!-- Input Nama Pemain -->
+                        <div class="relative">
+                            <input type="text" x-model="playerName" placeholder="Enter Your Name" class="w-full px-6 py-4 bg-gray-800/80 border border-purple-500/50 rounded-full text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 transition-all duration-300">
+                            <i data-feather="user" class="absolute right-6 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"></i>
+                        </div>
+                        
+                        <!-- Input Kode Game -->
                         <div class="relative">
                             <input type="text" x-model="gameCode" placeholder="Enter Game Code" class="w-full px-6 py-4 bg-gray-800/80 border border-purple-500/50 rounded-full text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 transition-all duration-300">
                             <i data-feather="hash" class="absolute right-6 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"></i>

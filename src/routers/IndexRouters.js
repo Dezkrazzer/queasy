@@ -58,5 +58,79 @@ module.exports = function () {
         });
     });
 
+    // Rute Login
+    router.get('/login', (req, res) => {
+        res.render('login', { req, res }, (err, html) => {
+            if (err) return res.status(500).send(err.message);
+
+            const obfuscatedHTML = obfuscateInlineScripts(html);
+            const minifiedHtml = minify(obfuscatedHTML, {
+                collapseWhitespace: true,
+                removeComments: true,
+                minifyCSS: true,
+                ignoreCustomFragments: [/<%[\s\S]*?%>/]
+            });
+
+            res.send(minifiedHtml);
+        });
+    });
+
+    // Rute Register
+    router.get('/register', (req, res) => {
+        res.render('register', { req, res }, (err, html) => {
+            if (err) return res.status(500).send(err.message);
+
+            const obfuscatedHTML = obfuscateInlineScripts(html);
+            const minifiedHtml = minify(obfuscatedHTML, {
+                collapseWhitespace: true,
+                removeComments: true,
+                minifyCSS: true,
+                ignoreCustomFragments: [/<%[\s\S]*?%>/]
+            });
+
+            res.send(minifiedHtml);
+        });
+    });
+
+    // Rute Dashboard (Protected)
+    router.get('/dashboard', async (req, res) => {
+        // Cek apakah host sudah login
+        if (!req.session || !req.session.host_id) {
+            return res.redirect('/login');
+        }
+
+        try {
+            const db = require('../utils/db');
+            
+            // Ambil kuis milik host ini
+            const [quizzes] = await db.query(
+                'SELECT * FROM quizzes WHERE host_id = ? ORDER BY created_at DESC',
+                [req.session.host_id]
+            );
+
+            res.render('dashboard', { 
+                req, 
+                res, 
+                username: req.session.username,
+                quizzes: quizzes 
+            }, (err, html) => {
+                if (err) return res.status(500).send(err.message);
+
+                const obfuscatedHTML = obfuscateInlineScripts(html);
+                const minifiedHtml = minify(obfuscatedHTML, {
+                    collapseWhitespace: true,
+                    removeComments: true,
+                    minifyCSS: true,
+                    ignoreCustomFragments: [/<%[\s\S]*?%>/]
+                });
+
+                res.send(minifiedHtml);
+            });
+        } catch (error) {
+            console.error('Error saat load dashboard:', error);
+            res.status(500).send('Terjadi kesalahan server');
+        }
+    });
+
     return router;
 }

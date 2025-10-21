@@ -2,6 +2,7 @@ function gameLobby() {
     return {
         // 1. STATE (Data)
         gameCode: '', // Ini akan terisi otomatis oleh input x-model
+        playerName: '', // Nama pemain untuk Guest
 
         // 2. METHODS (Fungsi)
         joinGame() {
@@ -9,15 +10,19 @@ function gameLobby() {
                 alert('Harap masukkan kode game!');
                 return;
             }
-            console.log(`Mencoba bergabung ke room: ${this.gameCode}`);
+            if (!this.playerName) {
+                alert('Harap masukkan nama Anda!');
+                return;
+            }
+            console.log(`Mencoba bergabung ke room: ${this.gameCode} dengan nama: ${this.playerName}`);
             // Mengirim data ke server socket.io
-            socket.emit('join_game', { code: this.gameCode });
+            socket.emit('join_game', { code: this.gameCode, name: this.playerName });
         },
 
         createGame() {
-            console.log('Meminta server membuat game baru...');
-            // Meminta server membuat game baru
-            socket.emit('create_game');
+            console.log('Mengarahkan ke halaman dashboard...');
+            // Arahkan ke dashboard (harus login dulu)
+            window.location.href = '/dashboard';
         }
     }
 }

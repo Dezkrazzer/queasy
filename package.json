@@ -4,7 +4,12 @@
   "description": "Diginesa Company Profile",
   "main": "server.js",
   "scripts": {
-    "test": "npm run dev"
+    "start": "node server.js",
+    "dev": "node server.js",
+    "init-db": "node init-db.js",
+    "seed-db": "node seed-db.js",
+    "setup": "npm run init-db && npm run seed-db",
+    "test": "echo \"No tests specified yet\" && exit 0"
   },
   "repository": {
     "type": "git",
@@ -22,6 +27,7 @@
   "homepage": "https://github.com/Dezkrazzer/compro-diginesa#readme",
   "dependencies": {
     "axios": "^1.10.0",
+    "bcrypt": "^6.0.0",
     "body-parser": "^2.2.0",
     "dotenv": "^17.2.3",
     "ejs": "^3.1.10",
