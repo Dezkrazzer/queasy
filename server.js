@@ -35,6 +35,10 @@ const sessionMiddleware = session({
 app.use(sessionMiddleware);
 
 // Share session dengan Socket.IO
+// Untuk Socket.IO Engine (handshake)
+io.engine.use(sessionMiddleware);
+
+// Untuk Socket.IO Middleware (setiap event)
 io.use((socket, next) => {
     sessionMiddleware(socket.request, {}, next);
 });
@@ -257,33 +261,39 @@ io.on('connection', (socket) => {
             
             // Ambil session dari socket
             const session = socket.request.session;
+            const host_id = session.host_id;
             
             // Validasi: Cek apakah host sudah login
-            if (!session || !session.host_id) {
-                socket.emit('error', { message: 'Anda harus login sebagai host terlebih dahulu' });
-                return;
+            if (!host_id) {
+                console.log('⚠️ Peringatan: Percobaan create_game tanpa autentikasi');
+                return socket.emit('auth_error');
             }
+
+            // Simpan username juga untuk ditampilkan di lobi
+            const hostUsername = session.username || 'Host';
 
             const gameCode = generateGameCode();
             
             // Simpan session ke database
             await db.query(
                 'INSERT INTO game_sessions (quiz_id, host_id, game_code) VALUES (?, ?, ?)',
-                [quiz_id, session.host_id, gameCode]
+                [quiz_id, host_id, gameCode]
             );
 
             activeGames[gameCode] = {
                 hostId: socket.id,
-                host_db_id: session.host_id,
+                host_db_id: host_id,
                 quiz_id: quiz_id,
-                players: [],
+                players: [
+                    { id: socket.id, name: hostUsername, isHost: true }
+                ],
                 currentQuestionIndex: 0
             };
 
             // Masukkan host ke "room" socket.io
             socket.join(gameCode);
 
-            console.log(`> 🎮 • Game baru dibuat oleh ${socket.id} (host_id: ${session.host_id}) dengan kode: ${gameCode}`);
+            console.log(`> 🎮 • Game baru dibuat oleh ${hostUsername} (host_id: ${host_id}) dengan kode: ${gameCode}`);
 
             // Kirim kodenya kembali HANYA ke host yang membuat
             socket.emit('game_created', { gameCode: gameCode });

@@ -6,9 +6,10 @@
     <title>Dashboard - Queasy Host</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body class="bg-gray-900 text-white min-h-screen">
+<body class="bg-gray-900 text-white min-h-screen" x-data="dashboard()">
     <nav class="bg-gray-800 border-b border-purple-500/30 p-4">
         <div class="container mx-auto flex justify-between items-center">
             <h1 class="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
@@ -51,10 +52,12 @@
                             <span><i data-feather="calendar" class="inline w-4 h-4"></i> <%= new Date(quiz.created_at).toLocaleDateString() %></span>
                         </div>
 
-                        <button onclick="startGame(<%= quiz.quiz_id %>)" 
-                            class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-2 rounded-lg font-semibold transition-all duration-300">
+                        <button 
+                            @click="startGame(<%= quiz.quiz_id %>)" 
+                            :disabled="loading"
+                            class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-2 rounded-lg font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
                             <i data-feather="play" class="inline w-4 h-4 mr-2"></i>
-                            Mulai Game
+                            <span x-text="loading ? 'Membuat Game...' : 'Mulai Game'"></span>
                         </button>
                     </div>
                 <% }) %>
@@ -65,43 +68,58 @@
     <script>
         feather.replace();
 
-        // Inisialisasi Socket.IO
+        // 1. Inisialisasi koneksi Socket.IO
         const socket = io({
             path: "/queasy-socket/"
         });
 
-        function startGame(quizId) {
-            console.log('Memulai game untuk quiz_id:', quizId);
-            socket.emit('create_game', { quiz_id: quizId });
+        socket.on('connect', () => {
+            console.log('✅ Socket.IO terhubung ke Dashboard!', socket.id);
+        });
+
+        // 2. Definisi Alpine.js untuk dashboard
+        function dashboard() {
+            return {
+                // State
+                loading: false,
+
+                // Method untuk memulai game
+                startGame(quizId) {
+                    if (!quizId) {
+                        alert('Error: Quiz ID tidak ditemukan!');
+                        return;
+                    }
+
+                    console.log(`Meminta server membuat lobi untuk quiz_id: ${quizId}`);
+                    this.loading = true;
+
+                    // Kirim event ke server
+                    socket.emit('create_game', { quiz_id: quizId });
+                }
+            };
         }
 
+        // 3. Listener untuk respons dari server
         socket.on('game_created', (data) => {
-            console.log('Game dibuat dengan kode:', data.gameCode);
-            showMessage(`Game berhasil dibuat! Kode: ${data.gameCode}`, 'success');
-            
-            // Redirect ke lobby setelah 1 detik
-            setTimeout(() => {
-                window.location.href = `/lobby/${data.gameCode}`;
-            }, 1000);
+            console.log(`Game dibuat, mengarahkan ke lobi: ${data.gameCode}`);
+            // Arahkan host ke lobi yang baru dibuat
+            window.location.href = `/lobby/${data.gameCode}`;
+        });
+
+        socket.on('auth_error', () => {
+            alert('Autentikasi gagal! Sesi Anda mungkin telah berakhir.');
+            window.location.href = '/login';
         });
 
         socket.on('error', (data) => {
             console.error('Error:', data.message);
-            showMessage(data.message, 'error');
+            alert('Error: ' + data.message);
+            // Reset loading state
+            if (window.Alpine && window.Alpine.raw) {
+                const dashboardData = window.Alpine.raw(document.querySelector('[x-data]').__x.$data);
+                if (dashboardData) dashboardData.loading = false;
+            }
         });
-
-        function showMessage(text, type) {
-            const messageDiv = document.getElementById('message');
-            messageDiv.className = 'mb-4 p-4 rounded-lg ' + 
-                (type === 'success' ? 'bg-green-500/20 text-green-400 border border-green-500' : 
-                                      'bg-red-500/20 text-red-400 border border-red-500');
-            messageDiv.textContent = text;
-            messageDiv.classList.remove('hidden');
-
-            setTimeout(() => {
-                messageDiv.classList.add('hidden');
-            }, 5000);
-        }
     </script>
 </body>
 </html>
