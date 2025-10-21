@@ -26,7 +26,7 @@ app.use(json());
 app.use(urlencoded({ extended: true }));
 
 const sessionMiddleware = session({
-    secret: 'queasy-unique-secret',
+    secret: process.env.SESSION_SECRET || 'queasy-unique-secret',
     resave: false,
     saveUninitialized: true
 });
