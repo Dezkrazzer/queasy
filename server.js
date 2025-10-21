@@ -10,6 +10,7 @@ const { Server } = require("socket.io");
 const { json, urlencoded } = require("body-parser");
 const bcrypt = require('bcrypt');
 const db = require('./src/utils/db');
+const initiateDB = require('./initiateDB');
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -367,7 +368,21 @@ io.on('connection', (socket) => {
 
 app.use("/", IndexRouters());
 
-server.listen(process.env.PORT, () => {
-    console.log(`> ✅ • Your app is listening on port ${process.env.PORT}`);
-    console.log(`> 🔌 • Socket.IO is ready on path: /queasy-socket/`);
-});
+// ===== INISIALISASI DATABASE & START SERVER =====
+(async () => {
+    try {
+        // Inisialisasi database otomatis sebelum server start
+        await initiateDB();
+        
+        // Start server setelah database ready
+        server.listen(process.env.PORT, () => {
+            console.log(`\n> ✅ • Your app is listening on port ${process.env.PORT}`);
+            console.log(`> 🔌 • Socket.IO is ready on path: /queasy-socket/`);
+            console.log(`> 🌐 • Open http://localhost:${process.env.PORT}\n`);
+        });
+    } catch (error) {
+        console.error('\n> 💥 Failed to start server due to database initialization error.');
+        console.error('> 🔧 Please fix the database connection and try again.\n');
+        process.exit(1);
+    }
+})();
