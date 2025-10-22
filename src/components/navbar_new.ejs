@@ -1,0 +1,54 @@
+<nav>
+    <a href="/" class="logo">Queasy</a>
+    
+    <ul class="nav-links">
+        <li><a href="/">
+            <i data-feather="home"></i>
+            Home
+        </a></li>
+        <li><a href="/quizzes">
+            <i data-feather="layers"></i>
+            Quizzes
+        </a></li>
+        <li><a href="/leaderboard">
+            <i data-feather="award"></i>
+            Leaderboard
+        </a></li>
+        <li><a href="/about">
+            <i data-feather="info"></i>
+            About
+        </a></li>
+        <% if (req.session && req.session.host_id) { %>
+            <li class="mobile-login-item">
+                <a href="/dashboard" class="login-btn">
+                    <i data-feather="user"></i>
+                    <%= req.session.username %>
+                </a>
+            </li>
+        <% } else { %>
+            <li class="mobile-login-item">
+                <a href="/login" class="login-btn">
+                    <i data-feather="log-in"></i>
+                    Login
+                </a>
+            </li>
+        <% } %>
+    </ul>
+
+    <div class="nav-right">
+        <button class="mobile-menu-btn" aria-label="Toggle menu">
+            <i data-feather="menu"></i>
+        </button>
+        <% if (req.session && req.session.host_id) { %>
+            <a href="/dashboard" class="login-btn desktop-login">
+                <i data-feather="user"></i>
+                <%= req.session.username %>
+            </a>
+        <% } else { %>
+            <a href="/login" class="login-btn desktop-login">
+                <i data-feather="log-in"></i>
+                Login
+            </a>
+        <% } %>
+    </div>
+</nav>

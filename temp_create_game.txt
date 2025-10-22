@@ -1,0 +1,67 @@
+    /**
+     * Saat host membuat game baru
+     */
+    socket.on('create_game', async (data) => {
+        try {
+            const { quiz_id } = data;
+            
+            // Ambil session dari socket
+            const session = socket.request.session;
+            const host_id = session.host_id;
+            
+            // Validasi: Cek apakah host sudah login
+            if (!host_id) {
+                console.log('⚠️ Peringatan: Percobaan create_game tanpa autentikasi');
+                return socket.emit('auth_error');
+            }
+
+            // Simpan username juga untuk ditampilkan di lobi
+            const hostUsername = session.username || 'Host';
+
+            // 1. Query judul quiz dari database
+            const [quizResults] = await db.query(
+                'SELECT title FROM quizzes WHERE quiz_id = ?',
+                [quiz_id]
+            );
+
+            if (quizResults.length === 0) {
+                return socket.emit('error', { message: 'Quiz tidak ditemukan' });
+            }
+
+            const quizTitle = quizResults[0].title;
+
+            // 2. Generate game code
+            const gameCode = generateGameCode();
+            
+            // 3. Simpan ke memori DULU (SINKRON) - PENTING untuk mencegah race condition
+            activeGames[gameCode] = {
+                hostId: socket.id,
+                host_db_id: host_id,
+                quiz_id: quiz_id,
+                quizTitle: quizTitle,
+                players: [
+                    { id: socket.id, name: hostUsername, isHost: true }
+                ],
+                questions: [],
+                currentQuestionIndex: 0
+            };
+
+            // 4. Masukkan host ke "room" socket.io
+            socket.join(gameCode);
+
+            // 5. (Opsional) Simpan session ke database - ASINKRON, bisa dijalankan setelah activeGames
+            await db.query(
+                'INSERT INTO game_sessions (quiz_id, host_id, game_code) VALUES (?, ?, ?)',
+                [quiz_id, host_id, gameCode]
+            );
+
+            console.log(`> 🎮 • Game baru dibuat oleh ${hostUsername} (host_id: ${host_id}) dengan kode: ${gameCode}`);
+
+            // 6. Kirim balasan ke klien - HANYA setelah semua selesai
+            socket.emit('game_created', { gameCode: gameCode });
+            
+        } catch (error) {
+            console.error('Error saat create_game:', error);
+            socket.emit('create_game_failed', { error: error.message || 'Gagal membuat game' });
+        }
+    });
