@@ -181,28 +181,9 @@
         });
         
         // 4. Game dimulai oleh host!
-        socket.on('game_started', (firstQuestion) => {
-            // (Logika countdown Anda yang canggih bisa ditaruh di sini)
-            const overlay = document.createElement('div');
-            overlay.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-50';
-            overlay.innerHTML = `<div class="text-center"><div class="text-8xl font-bold text-white mb-4 countdown">3</div>`;
-            document.body.appendChild(overlay);
-            
-            let count = 3;
-            const countdownEl = overlay.querySelector('.countdown');
-            
-            const countdown = setInterval(() => {
-                count--;
-                if (count > 0) {
-                    countdownEl.textContent = count;
-                } else {
-                    clearInterval(countdown);
-                    overlay.remove();
-                    // Nanti kita arahkan ke halaman kuis
-                    alert('GAME MULAI! Pertanyaan: ' + firstQuestion.question);
-                    // window.location.href = `/quiz/${gameCode}`;
-                }
-            }, 1000);
+        socket.on('game_started', () => {
+            console.log('Game dimulai, redirect ke halaman quiz...');
+            window.location.href = `/quiz/${gameCode}`;
         });
 
         // 5. Jika game tidak ditemukan (misal salah URL)

@@ -1,0 +1,5 @@
+        // 4. Game dimulai oleh host! - Redirect ke halaman quiz
+        socket.on('game_started', () => {
+            console.log('Game dimulai! Redirect ke quiz page...');
+            window.location.href = `/quiz/${gameCode}`;
+        });

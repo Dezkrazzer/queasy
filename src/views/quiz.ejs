@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playing Quiz - Queasy</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col">
+    <!-- Top Navbar -->
+    <nav class="fixed top-0 left-0 right-0 bg-gray-900/95 backdrop-blur-sm py-3 px-6 z-50 border-b border-purple-500/30">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <!-- Left: Ping Status -->
+            <div class="flex items-center gap-2 text-sm">
+                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span class="text-green-400">25ms</span>
+            </div>
+            
+            <!-- Center: Quiz Name -->
+            <div class="text-center">
+                <h1 class="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
+                    General Knowledge Challenge
+                </h1>
+            </div>
+            
+            <!-- Right: Question Counter -->
+            <div class="text-right">
+                <span class="text-lg font-semibold text-white">1/15</span>
+            </div>
+        </div>
+    </nav>
+    <!-- Bottom Navbar -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-sm py-3 px-6 z-50 border-t border-purple-500/30">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <!-- Left: Score with Fire Icon -->
+            <div class="flex items-center gap-2">
+                <i data-feather="zap" class="w-5 h-5 text-yellow-400"></i>
+                <p class="text-xl font-bold text-white">0</p>
+            </div>
+            
+            <!-- Center: Countdown Timer -->
+            <div class="text-center">
+                <div class="text-2xl font-bold text-white">20s</div>
+            </div>
+            
+            <!-- Right: User Profile -->
+            <div class="flex items-center gap-3">
+                <img src="http://static.photos/people/200x200/1" alt="User" class="w-8 h-8 rounded-full border-2 border-purple-500">
+                <div class="text-left">
+                    <p class="text-sm font-semibold text-white">You</p>
+                    <p class="text-xs text-gray-400">Player</p>
+                </div>
+            </div>
+        </div>
+</nav>
+
+<!-- Main Game Content -->
+<main class="flex-grow pt-16 pb-20">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <!-- Question -->
+            <div class="bg-gray-800/80 rounded-2xl p-8 border border-purple-500/30 mb-8">
+                <h2 class="text-2xl font-bold text-white mb-6">Which planet is known as the Red Planet?</h2>
+            
+            <!-- Answer Options -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Option A -->
+                <button class="answer-option bg-gray-700/50 hover:bg-purple-600/30 border-2 border-gray-600 hover:border-purple-400 p-4 rounded-xl text-left transition-all duration-300 transform hover:scale-105">
+                    <div class="flex items-center gap-4">
+                    <div class="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center text-white font-semibold">A</div>
+                <span class="text-white text-lg">Venus</span>
+            </button>
+            
+            <!-- Option B -->
+            <button class="answer-option bg-gray-700/50 hover:bg-purple-600/30 border-2 border-gray-600 hover:border-purple-400 p-4 rounded-xl text-left transition-all duration-300 transform hover:scale-105">
+                <div class="flex items-center gap-4">
+                    <div class="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center text-white font-semibold">B</div>
+                <span class="text-white text-lg">Mars</span>
+            </button>
+            
+            <!-- Option C -->
+            <button class="answer-option bg-gray-700/50 hover:bg-purple-600/30 border-2 border-gray-600 hover:border-purple-400 p-4 rounded-xl text-left transition-all duration-300 transform hover:scale-105">
+                <div class="flex items-center gap-4">
+                    <div class="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center text-white font-semibold">C</div>
+                <span class="text-white text-lg">Jupiter</span>
+        </button>
+        
+        <!-- Option D -->
+        <button class="answer-option bg-gray-700/50 hover:bg-purple-600/30 border-2 border-gray-600 hover:border-purple-400 p-4 rounded-xl text-left transition-all duration-300 transform hover:scale-105">
+            <div class="flex items-center gap-4">
+                <div class="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center text-white font-semibold">D</div>
+            <span class="text-white text-lg">Saturn</span>
+        </button>
+    </div>
+</div>
+
+<!-- Question Progress -->
+<div class="flex items-center justify-center gap-2 mt-8">
+    <div class="w-3 h-3 bg-purple-500 rounded-full"></div>
+    <div class="w-3 h-3 bg-gray-600 rounded-full"></div>
+    <div class="w-3 h-3 bg-gray-600 rounded-full"></div>
+    <div class="w-3 h-3 bg-gray-600 rounded-full"></div>
+    <div class="w-3 h-3 bg-gray-600 rounded-full"></div>
+    <div class="w-3 h-3 bg-gray-600 rounded-full"></div>
+    <div class="w-3 h-3 bg-gray-600 rounded-full"></div>
+    <div class="w-3 h-3 bg-gray-600 rounded-full"></div>
+</div>
+</div>
+</div>
+</main>
+
+<script src="components/navbar.js"></script>
+<script src="components/footer.js"></script>
+<script src="script.js"></script>
+<script>
+    // Game functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const timerBar = document.getElementById('timerBar');
+        const answerOptions = document.querySelectorAll('.answer-option');
+        const timerDisplay = document.querySelector('.text-2xl');
+        
+        let timeLeft = 20;
+        let timerInterval;
+        let currentScore = 0;
+        
+        // Start countdown timer
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                const percentage = (timeLeft / 20) * 100;
+                
+                timerBar.style.width = `${percentage}%`;
+                timerDisplay.textContent = `${timeLeft}s`;
+                
+                // Change color based on time remaining
+                if (timeLeft <= 5) {
+                    timerBar.className = 'h-full bg-gradient-to-r from-red-500 to-yellow-500 transition-all duration-1000 ease-linear';
+                }
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    handleTimeUp();
+                }
+            }, 1000);
+        }
+        
+        // Handle time up
+        function handleTimeUp() {
+            answerOptions.forEach(option => {
+                option.disabled = true;
+                option.classList.remove('hover:bg-purple-600/30', 'hover:border-purple-400', 'hover:scale-105');
+            }
+            
+            // Show correct answer
+            const correctAnswer = answerOptions[1];// Mars is correct
+            correctAnswer.classList.add('bg-green-500/30', 'border-green-400');
+        }
+        
+        // Handle answer selection
+        answerOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    clearInterval(timerInterval);
+                    
+                    // Remove hover effects from all options
+                    answerOptions.forEach(opt => {
+                        opt.classList.remove('hover:bg-purple-600/30', 'hover:border-purple-400', 'hover:scale-105');
+                    opt.disabled = true;
+                });
+                
+                // Check if answer is correct
+                if (this === answerOptions[1]) { // Mars is correct
+                    this.classList.add('bg-green-500/30', 'border-green-400');
+                    
+                    // Update score
+                    currentScore += 100;
+                    document.querySelector('.text-xl').textContent = currentScore;
+                    
+                    // Show feedback
+                    setTimeout(() => {
+                        // Move to next question (in real app, this would be handled by backend)
+                        alert('Correct! +100 points');
+                        // In real app, this would navigate to next question
+                    }, 500);
+                } else {
+                    this.classList.add('bg-red-500/30', 'border-red-400');
+                    
+                    // Show correct answer
+                    answerOptions[1].classList.add('bg-green-500/30', 'border-green-400');
+                }
+            });
+        });
+        
+        // Simulate ping updates
+        setInterval(() => {
+            const pingElement = document.querySelector('.text-green-400');
+            const ping = Math.floor(Math.random() * 20) + 15;
+            pingElement.textContent = `${ping}ms`;
+        }, 3000);
+        
+        // Start the timer when page loads
+        startTimer();
+    });
+</script>
+</body>
+</html>

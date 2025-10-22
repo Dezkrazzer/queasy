@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playing Quiz - Queasy</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col" x-data="quizGame()">
+    <!-- Top Navbar -->
+    <nav class="fixed top-0 left-0 right-0 bg-gray-900/95 backdrop-blur-sm py-3 px-6 z-50 border-b border-purple-500/30">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <!-- Left: Game Code -->
+            <div class="flex items-center gap-2 text-sm">
+                <i data-feather="hash" class="w-4 h-4 text-purple-400"></i>
+                <span class="text-purple-400 font-mono"><%= gameCode %></span>
+            </div>
+            
+            <!-- Center: Quiz Name -->
+            <div class="text-center">
+                <h1 class="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
+                    Queasy Quiz
+                </h1>
+            </div>
+            
+            <!-- Right: Timer -->
+            <div class="text-right">
+                <span class="text-lg font-semibold text-white" x-text="timer + 's'"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow flex items-center justify-center px-4 py-20">
+        <div class="w-full max-w-4xl">
+            <!-- Question Card -->
+            <div class="bg-gray-800/80 rounded-2xl p-8 border border-purple-500/30 mb-6">
+                <h2 class="text-3xl font-bold text-white mb-8 text-center" x-text="questionText"></h2>
+                
+                <!-- Answer Options -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <template x-for="(answer, index) in answers" :key="answer.answer_id">
+                        <button 
+                            @click="submitAnswer(answer.answer_id)"
+                            :disabled="isAnswered"
+                            class="bg-gray-700/50 hover:bg-purple-600/30 border-2 border-gray-600 hover:border-purple-400 rounded-xl p-6 text-left transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                            :class="{ 
+                                'bg-purple-600/30 border-purple-400': selectedAnswer === answer.answer_id,
+                                'cursor-not-allowed': isAnswered
+                            }"
+                        >
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center text-xl font-bold">
+                                    <span x-text="String.fromCharCode(65 + index)"></span>
+                                </div>
+                                <span class="text-lg" x-text="answer.answer_text"></span>
+                            </div>
+                        </button>
+                    </template>
+                </div>
+
+                <!-- Message/Feedback -->
+                <div x-show="message" class="mt-6 text-center">
+                    <p class="text-xl font-semibold" :class="{
+                        'text-green-400': message.includes('✅'),
+                        'text-red-400': message.includes('❌'),
+                        'text-yellow-400': message.includes('⏳') || message.includes('⏰')
+                    }" x-text="message"></p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Navbar -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-sm py-4 px-6 z-50 border-t border-purple-500/30">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <!-- Left: Score with Fire Icon -->
+            <div class="flex items-center gap-2">
+                <i data-feather="zap" class="w-5 h-5 text-yellow-400"></i>
+                <p class="text-xl font-bold text-white" x-text="score"></p>
+            </div>
+            
+            <!-- Center: Status -->
+            <div class="text-center">
+                <p class="text-sm text-gray-400" x-text="isAnswered ? 'Menunggu pemain lain...' : 'Pilih jawaban Anda!'"></p>
+            </div>
+            
+            <!-- Right: User Profile -->
+            <div class="flex items-center gap-2">
+                <i data-feather="user" class="w-5 h-5 text-purple-400"></i>
+                <p class="text-sm text-gray-400">Player</p>
+            </div>
+        </div>
+    </nav>
+
+    <script>
+        // Pass gameCode dari EJS ke JavaScript
+        const gameCode = '<%= gameCode %>';
+        feather.replace();
+    </script>
+    <script src="/static/js/quiz.js"></script>
+</body>
+</html>

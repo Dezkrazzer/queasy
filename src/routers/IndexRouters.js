@@ -58,6 +58,29 @@ module.exports = function () {
         });
     });
 
+    router.get('/quiz/:gameCode', (req, res) => {
+        const gameCode = req.params.gameCode;
+
+        res.render('quiz_new', {
+            req,
+            res,
+            gameCode: gameCode
+        }, (err, html) => {
+            if (err) return res.status(500).send(err.message);
+
+            const obfuscatedHTML = obfuscateInlineScripts(html);
+
+            const minifiedHtml = minify(obfuscatedHTML, {
+                collapseWhitespace: true,
+                removeComments: true,
+                minifyCSS: true,
+                ignoreCustomFragments: [/<%[\s\S]*?%>/]
+            });
+
+            res.send(minifiedHtml);
+        });
+    });
+
     // Rute Login
     router.get('/login', (req, res) => {
         res.render('login', { req, res }, (err, html) => {

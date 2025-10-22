@@ -10,6 +10,8 @@
 body {
     font-family: 'Inter', sans-serif;
     scroll-behavior: smooth;
+    background-color: #111827;
+    color: white;
 }
 
 /* Custom scrollbar */
@@ -34,28 +36,22 @@ body {
 .feature-card {
     position: relative;
     overflow: hidden;
+    transition: all 0.3s ease;
 }
 
-.feature-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.1), transparent);
-    transition: left 0.5s ease;
-}
-
-.feature-card:hover::before {
-    left: 100%;
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(139, 92, 246, 0.2);
 }
 
 /* Floating animation for hero section elements */
 @keyframes float {
-    0%, 100% {
+
+    0%,
+    100% {
         transform: translateY(0px);
     }
+
     50% {
         transform: translateY(-10px);
     }
@@ -67,9 +63,12 @@ body {
 
 /* Pulse glow effect */
 @keyframes pulse-glow {
-    0%, 100% {
+
+    0%,
+    100% {
         box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
     }
+
     50% {
         box-shadow: 0 0 40px rgba(139, 92, 246, 0.8);
     }
@@ -84,9 +83,11 @@ body {
     0% {
         background-position: 0% 50%;
     }
+
     50% {
         background-position: 100% 50%;
     }
+
     100% {
         background-position: 0% 50%;
     }
@@ -133,4 +134,145 @@ body {
 .btn-magnetic:hover::before {
     width: 300px;
     height: 300px;
+}
+
+/* Mobile menu styles */
+#mobileMenu {
+    display: none;
+}
+
+#mobileMenu:not(.hidden) {
+    display: block;
+}
+
+/* Container utility */
+.container {
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    /* Hide mobile menu by default */
+    #mobileMenu {
+        display: none;
+    }
+
+    #mobileMenu:not(.hidden) {
+        display: block;
+    }
+
+    /* Lobby specific styles */
+    .countdown {
+        animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+
+        0%,
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        50% {
+            transform: scale(1.2);
+            opacity: 0.7;
+        }
+    }
+
+    /* Player card animations */
+    .player-card {
+        transition: all 0.3s ease;
+    }
+
+    .player-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3);
+    }
+
+    /* Ready status animation */
+    .ready-pulse {
+        animation: ready-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes ready-pulse {
+
+        0%,
+        100% {
+            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+        }
+
+        70% {
+            box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+        }
+    }
+
+    /* Chat animations */
+    .chat-message {
+        animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateX(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    /* Game specific styles */
+    .answer-option {
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .answer-option:disabled {
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+
+    /* Timer bar animation */
+    .timer-bar {
+        transition: width 1s linear;
+    }
+
+    /* Ping status animation */
+    .ping-dot {
+        animation: ping 1.5s ease-in-out infinite;
+    }
+
+    @keyframes ping {
+
+        0%,
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        50% {
+            transform: scale(1.2);
+            opacity: 0.7;
+        }
+    }
+
+    /* Question progress dots */
+    .progress-dot {
+        transition: all 0.3s ease;
+    }
+
+    .progress-dot.active {
+        background-color: #8b5cf6;
+        transform: scale(1.2);
+    }
 }
