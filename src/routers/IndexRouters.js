@@ -61,7 +61,7 @@ module.exports = function () {
     router.get('/quiz/:gameCode', (req, res) => {
         const gameCode = req.params.gameCode;
 
-        res.render('quiz_new', {
+        res.render('quiz', {
             req,
             res,
             gameCode: gameCode
