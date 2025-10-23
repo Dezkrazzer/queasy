@@ -2,9 +2,21 @@
 
 const socket = io({ path: "/queasy-socket/" });
 
-function quizGame() {
+// Fungsi Fisher-Yates Shuffle untuk mengacak array
+function shuffleArray(array) {
+    let shuffled = [...array]; // Buat salinan array
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+}
+
+function quizGame(gameCode) {
     return {
         // State
+        gameCode: gameCode,
+        currentQuestionId: null, // Track ID pertanyaan saat ini
         questionText: 'Menunggu pertanyaan...', 
         answers: [],
         timer: 0,
@@ -16,28 +28,60 @@ function quizGame() {
 
         // Fungsi init dipanggil oleh Alpine saat komponen dimuat
         init() {
-            console.log('Alpine.js init, gameCode:', gameCode);
+            console.log('Alpine.js init, gameCode:', this.gameCode);
 
             // 1. Beritahu server kita sudah masuk halaman kuis
-            socket.emit('player_joined_quiz', { code: gameCode });
+            socket.emit('player_joined_quiz', { gameCode: this.gameCode });
 
             // 2. Listener untuk pertanyaan baru
             socket.on('game_question', (data) => {
                 console.log('Pertanyaan baru diterima:', data);
-                this.questionText = data.question.question_text;
-                this.answers = data.answers; // Array jawaban
-                this.timer = data.question.time_limit;
+                this.currentQuestionId = data.question_id; // Simpan ID pertanyaan saat ini
+                this.questionText = data.question_text;
+                this.answers = shuffleArray(data.answers); // Acak urutan jawaban untuk setiap klien
+                this.timer = data.time_limit;
                 this.isAnswered = false; // Reset status jawaban
                 this.message = '';
                 this.selectedAnswer = null;
                 this.startTimer();
             });
 
-            // 3. Listener untuk hasil jawaban (setelah timer habis)
+            // 3. Listener untuk feedback jawaban langsung (dari server saat submit)
+            socket.on('answer_result', (data) => {
+                console.log('========== ANSWER RESULT RECEIVED (IMMEDIATE) ==========');
+                console.log('Feedback langsung dari server:', data);
+                console.log('isCorrect:', data.isCorrect);
+                console.log('Score baru:', data.score);
+                console.log('Correct Answer ID:', data.correctAnswerId);
+                console.log('========================================================');
+                
+                // Update score langsung tapi JANGAN tampilkan hasil
+                this.score = data.score;
+                
+                // HANYA tampilkan "Menunggu pemain lain..."
+                this.message = '⏳ Menunggu pemain lain menjawab...';
+            });
+
+            // 4. Listener untuk hasil jawaban (setelah timer habis)
             socket.on('question_result', (data) => {
-                console.log('Hasil jawaban:', data);
+                console.log('========== QUESTION RESULT RECEIVED ==========');
+                console.log('Hasil jawaban dari server:', data);
+                console.log('isCorrect:', data.isCorrect);
+                console.log('Score baru:', data.newScore);
+                console.log('Score saya sekarang:', this.score);
+                console.log('==============================================');
+                
                 this.isAnswered = true; // Kunci jawaban
-                this.message = data.isCorrect ? '✅ Jawaban Benar! +' + (data.newScore - this.score) + ' poin' : '❌ Jawaban Salah!';
+                
+                // TAMPILKAN hasil setelah semua selesai
+                if (data.isCorrect) {
+                    const pointsEarned = data.newScore - this.score;
+                    this.message = '✅ Jawaban Benar! +' + pointsEarned + ' poin';
+                } else {
+                    // Jangan tampilkan "+0 poin" untuk jawaban salah
+                    this.message = '❌ Jawaban Salah!';
+                }
+                
                 this.score = data.newScore; // Update skor dari server
                 
                 // Stop timer
@@ -46,7 +90,7 @@ function quizGame() {
                 }
             });
 
-            // 4. Listener untuk game over
+            // 5. Listener untuk game over
             socket.on('game_over', (data) => {
                 console.log('Game selesai! Skor akhir:', data.finalScores);
                 
@@ -59,7 +103,7 @@ function quizGame() {
                 this.showGameOverScreen(data.finalScores);
             });
 
-            // 5. Listener untuk error
+            // 6. Listener untuk error
             socket.on('error', (data) => {
                 console.error('Error:', data.message);
                 this.message = 'Error: ' + data.message;
@@ -74,8 +118,18 @@ function quizGame() {
             this.selectedAnswer = answerId;
             this.message = '⏳ Jawaban terkirim, menunggu hasil...';
             
+            // Cari teks jawaban yang dipilih
+            const selectedAnswerObj = this.answers.find(ans => ans.answer_id === answerId);
+            
+            console.log('========== CLIENT SUBMIT ANSWER ==========');
+            console.log('Question ID:', this.currentQuestionId);
+            console.log('Answer ID yang dipilih:', answerId);
+            console.log('Answer Text yang dipilih:', selectedAnswerObj ? selectedAnswerObj.answer_text : 'NOT FOUND');
+            console.log('==========================================');
+            
             socket.emit('player_answer', {
-                code: gameCode,
+                code: this.gameCode,
+                question_id: this.currentQuestionId, // Kirim question_id untuk mencegah race condition
                 answer_id: answerId,
                 time_left: this.timer // Kirim sisa waktu untuk perhitungan skor
             });
