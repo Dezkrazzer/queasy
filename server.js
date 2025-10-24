@@ -250,6 +250,12 @@ function sendQuestion(gameCode) {
         return;
     }
 
+    // Check if there are any players (not including host)
+    if (!game.players || game.players.length === 0) {
+        console.log(`> ⚠️ • Tidak ada player di game ${gameCode}, skip pertanyaan`);
+        return;
+    }
+
     const currentQuestion = game.questions[game.currentQuestionIndex];
     if (!currentQuestion) {
         // Tidak ada pertanyaan lagi, game selesai
@@ -287,13 +293,10 @@ function sendQuestion(gameCode) {
         console.log(`> 📤 • Mengirim pertanyaan ${game.currentQuestionIndex + 1}/${game.questions.length} ke game ${gameCode}`);
         io.to(gameCode).emit('game_question', questionData);
 
-        // Set timeout untuk auto lanjut jika tidak semua jawab dalam waktu tertentu
+        // Set timeout untuk auto lanjut saat waktu habis
         game.questionTimer = setTimeout(() => {
-            const allAnswered = game.players.every(p => p.hasAnswered);
-            if (!allAnswered) {
-                console.log(`> ⏰ • Timeout! Lanjut ke pertanyaan berikutnya di game ${gameCode}`);
-                showQuestionResult(gameCode);
-            }
+            console.log(`> ⏰ • Waktu habis untuk pertanyaan ${game.currentQuestionIndex + 1} di game ${gameCode}`);
+            showQuestionResult(gameCode);
         }, (currentQuestion.time_limit + 2) * 1000); // +2 detik buffer
 
     }).catch(error => {
@@ -303,7 +306,16 @@ function sendQuestion(gameCode) {
 
 function showQuestionResult(gameCode) {
     const game = activeGames[gameCode];
-    if (!game) return;
+        if (!game) {
+            console.log(`> ⚠️ • showQuestionResult: Game ${gameCode} tidak ditemukan (mungkin sudah dihapus)`);
+            return;
+        }
+    
+        // Safety check: pastikan game masih valid
+        if (!game.players || !game.questions) {
+            console.log(`> ⚠️ • showQuestionResult: Game ${gameCode} tidak valid`);
+            return;
+        }
 
     console.log(`> 📊 • Mengirim hasil pertanyaan ${game.currentQuestionIndex + 1} ke semua player`);
 
@@ -325,6 +337,15 @@ function showQuestionResult(gameCode) {
             console.log(`  - Kirim ke ${player.name}: isCorrect=${player.lastAnswerCorrect}, score=${player.score}`);
         }
     });
+
+    // Broadcast updated scores to admin
+    io.to(gameCode).emit('participants_update', game.players.map(p => ({
+        id: p.id,
+        name: p.name,
+        score: p.score,
+        hasAnswered: p.hasAnswered,
+        isHost: p.isHost || false
+    })));
 
     // Tunggu 5 detik, lalu lanjut ke pertanyaan berikutnya
     setTimeout(() => {
@@ -402,22 +423,34 @@ io.on('connection', (socket) => {
             if (game.hostId === socket.id) {
                 console.log(`> 🚨 • Host terputus dari game ${gameCode}`);
                 
-                // JANGAN langsung hapus game, beri waktu 10 detik untuk reconnect
+                    // JANGAN langsung hapus game, beri waktu untuk reconnect
                 // Tandai bahwa host disconnect
                 game.hostDisconnected = true;
                 game.hostDisconnectTime = Date.now();
                 
-                // Set timeout untuk hapus game jika host tidak reconnect dalam 10 detik
+                    // JANGAN hapus game jika:
+                    // 1. Game sudah dimulai (ada questions loaded)
+                    // 2. Masih ada players aktif
+                    const gameStarted = game.questions && game.questions.length > 0;
+                    const hasPlayers = game.players && game.players.length > 0;
+                
+                    if (gameStarted || hasPlayers) {
+                        console.log(`> ⏸️ • Game ${gameCode} tetap berjalan (started: ${gameStarted}, players: ${game.players.length})`);
+                        // Host bisa reconnect kapan saja, game tetap jalan
+                        return;
+                    }
+                
+                    // Hanya hapus game jika di lobby dan tidak ada players
                 setTimeout(() => {
                     const currentGame = activeGames[gameCode];
                     if (currentGame && currentGame.hostDisconnected && 
-                        (Date.now() - currentGame.hostDisconnectTime) >= 10000) {
-                        console.log(`> 🗑️ • Game ${gameCode} dihapus karena host tidak reconnect`);
-                        // Broadcast ke semua pemain bahwa game dibatalkan
+                            (Date.now() - currentGame.hostDisconnectTime) >= 30000 &&
+                            (!currentGame.players || currentGame.players.length === 0)) {
+                            console.log(`> 🗑️ • Game ${gameCode} dihapus (tidak ada activity)`);
                         io.to(gameCode).emit('host_disconnected');
                         delete activeGames[gameCode];
                     }
-                }, 10000);
+                    }, 30000);
                 
                 return;
             }
@@ -439,6 +472,165 @@ io.on('connection', (socket) => {
     });
 
     // --- TAMBAHKAN LISTENER BARU DI SINI ---
+
+    /**
+     * Listener untuk ping user ke server (latency test)
+     */
+    socket.on('ping_user', (data) => {
+        // Kirim balik timestamp ke user
+        socket.emit('pong_user', {
+            pingSentAt: data.pingSentAt || Date.now(),
+            gameCode: data.gameCode || null
+        });
+    });
+
+    /**
+     * Admin joins live monitoring view
+     */
+    socket.on('admin_join_live', async (data) => {
+        const { gameCode } = data;
+        const game = activeGames[gameCode];
+
+        if (!game) {
+            socket.emit('error', { message: 'Game tidak ditemukan' });
+            return;
+        }
+
+        // Join the game room to receive updates
+        socket.join(gameCode);
+        console.log(`> 👁️ • Admin bergabung ke monitoring ${gameCode}`);
+
+        // Send initial game data
+        socket.emit('game_data', {
+            quizTitle: game.quizTitle,
+            totalQuestions: game.questions.length,
+            currentQuestionIndex: game.currentQuestionIndex,
+            participants: game.players.map(p => ({
+                id: p.id,
+                name: p.name,
+                score: p.score,
+                hasAnswered: p.hasAnswered,
+                isHost: p.isHost || false
+            }))
+        });
+
+        // If game is in progress, send current question data
+        if (game.currentQuestionIndex >= 0 && game.currentQuestionIndex < game.questions.length) {
+            const currentQuestion = game.questions[game.currentQuestionIndex];
+            
+            // Query answers from database
+            db.query(
+                'SELECT answer_id, answer_text, is_correct FROM answers WHERE question_id = ?',
+                [currentQuestion.question_id]
+            ).then(([answers]) => {
+                socket.emit('game_question', {
+                    questionIndex: game.currentQuestionIndex,
+                    question: {
+                        question_id: currentQuestion.question_id,
+                        question_text: currentQuestion.question_text,
+                        time_limit: currentQuestion.time_limit,
+                        answers: answers
+                    }
+                });
+            }).catch(error => {
+                console.error('Error querying answers for admin:', error);
+            });
+        }
+    });
+
+    /**
+     * Admin navigates to specific question
+     */
+    socket.on('admin_navigate_question', (data) => {
+        const { gameCode, direction } = data; // direction: 'next' or 'prev'
+        const game = activeGames[gameCode];
+
+        if (!game) {
+            socket.emit('error', { message: 'Game tidak ditemukan' });
+            return;
+        }
+
+        let newIndex = game.currentQuestionIndex;
+        if (direction === 'next' && newIndex < game.questions.length - 1) {
+            newIndex++;
+        } else if (direction === 'prev' && newIndex > 0) {
+            newIndex--;
+        } else {
+            return; // No change needed
+        }
+
+        game.currentQuestionIndex = newIndex;
+        const currentQuestion = game.questions[newIndex];
+
+        console.log(`> 🔄 • Admin navigasi ke pertanyaan ${newIndex + 1} di game ${gameCode}`);
+
+        // Query answers from database
+        db.query(
+            'SELECT answer_id, answer_text, is_correct FROM answers WHERE question_id = ?',
+            [currentQuestion.question_id]
+        ).then(([answers]) => {
+            // Broadcast new question to all players and admin
+            io.to(gameCode).emit('game_question', {
+                questionIndex: newIndex,
+                question: {
+                    question_id: currentQuestion.question_id,
+                    question_text: currentQuestion.question_text,
+                    time_limit: currentQuestion.time_limit,
+                    answers: answers
+                }
+            });
+
+            // Reset player states for new question
+            game.players.forEach(p => {
+                p.hasAnswered = false;
+                p.lastAnswerCorrect = undefined;
+            });
+
+            // Notify admin of participant reset
+            io.to(gameCode).emit('participants_update', game.players.map(p => ({
+                id: p.id,
+                name: p.name,
+                score: p.score,
+                hasAnswered: false,
+                isHost: p.isHost || false
+            })));
+        }).catch(error => {
+            console.error('Error querying answers for navigation:', error);
+        });
+    });
+
+    /**
+     * Admin ends the quiz
+     */
+    socket.on('admin_end_quiz', (data) => {
+        const { gameCode } = data;
+        const game = activeGames[gameCode];
+
+        if (!game) {
+            socket.emit('error', { message: 'Game tidak ditemukan' });
+            return;
+        }
+
+        console.log(`> 🛑 • Admin mengakhiri game ${gameCode}`);
+
+        // Sort players by score
+        const leaderboard = game.players
+            .filter(p => !p.isHost)
+            .sort((a, b) => b.score - a.score)
+            .map((p, index) => ({
+                rank: index + 1,
+                name: p.name,
+                score: p.score
+            }));
+
+        // Broadcast game over to all
+        io.to(gameCode).emit('game_over', {
+            leaderboard
+        });
+
+        // Clean up game
+        delete activeGames[gameCode];
+    });
 
     /**
      * Saat host membuat game baru
@@ -608,10 +800,21 @@ io.on('connection', (socket) => {
 
             console.log(`> 📋 • Loaded ${questions.length} pertanyaan untuk game ${gameCode}`);
             
+            // 3.5. PENTING: Hapus host dari players array karena host tidak ikut quiz
+            game.players = game.players.filter(p => !p.isHost);
+            console.log(`> 👥 • Removed host from players. Active players: ${game.players.length}`);
+            
             // 4. Kirim sinyal sederhana ke semua orang di room untuk redirect
             io.to(gameCode).emit('game_started');
             
             console.log(`> ✅ • Game ${gameCode} siap dimulai dengan ${game.players.length} pemain`);
+            
+            // 5. Tunggu 3 detik untuk redirect, lalu mulai kirim pertanyaan
+            setTimeout(() => {
+                console.log(`> 🏁 • Starting quiz ${gameCode} - sending first question`);
+                sendQuestion(gameCode);
+            }, 3000);
+            
         } catch (error) {
             console.error('Error saat start_game:', error);
             socket.emit('error', { message: 'Gagal memulai game' });
@@ -632,6 +835,11 @@ io.on('connection', (socket) => {
 
         // Join room
         socket.join(gameCode);
+
+        // Kirim info game (judul kuis) ke player ini
+        socket.emit('game_info', {
+            quizTitle: game.quizTitle || 'Quiz'
+        });
 
         // Cek apakah ini adalah host yang reconnect
         const session = socket.request.session;
@@ -668,15 +876,8 @@ io.on('connection', (socket) => {
             }
         }
 
-        // Cek apakah ini adalah host yang pertama kali masuk ke quiz page
-        if (session && session.host_id && session.host_id === game.host_db_id && game.currentQuestionIndex === 0) {
-            console.log(`> 🏁 • Host ${socket.id} akan memulai pertanyaan pertama`);
-            
-            // Tunggu sebentar agar semua player siap, lalu kirim pertanyaan pertama
-            setTimeout(() => {
-                sendQuestion(gameCode);
-            }, 2000);
-        }
+        // Pertanyaan akan dikirim otomatis oleh start_game handler
+        // Tidak perlu trigger dari player_joined_quiz lagi
     });
 
     // Listener ketika player submit jawaban
@@ -685,14 +886,31 @@ io.on('connection', (socket) => {
         const game = activeGames[gameCode];
 
         if (!game) {
-            socket.emit('error', { message: 'Game tidak ditemukan' });
+                console.log(`> ⚠️ • player_answer: Game ${gameCode} tidak ditemukan`);
             return;
         }
+        
+            // Validate game state
+            if (!game.questions || !game.players) {
+                console.log(`> ⚠️ • player_answer: Game ${gameCode} tidak valid`);
+                return;
+            }
 
         // Cari player ini
         const player = game.players.find(p => p.id === socket.id);
         if (!player) {
             console.log(`> ⚠️ • Player ${socket.id} tidak ditemukan di game ${gameCode}`);
+                // Cek apakah ada player dengan nama yang sama (reconnect dengan socket ID baru)
+                const session = socket.request.session;
+                if (session && session.playerName) {
+                    const playerByName = game.players.find(p => p.name === session.playerName);
+                    if (playerByName) {
+                        console.log(`> 🔄 • Update socket ID untuk ${session.playerName}: ${playerByName.id} → ${socket.id}`);
+                        playerByName.id = socket.id;
+                        // Try processing answer again with updated player
+                        return; // Let client retry
+                    }
+                }
             return;
         }
 
@@ -787,6 +1005,24 @@ io.on('connection', (socket) => {
 
             // Tandai sudah menjawab
             player.hasAnswered = true;
+
+            // Broadcast to admin that this player answered
+            io.to(gameCode).emit('player_answered', {
+                playerId: socket.id,
+                playerName: player.name,
+                answerId: answerId,
+                isCorrect: isCorrect,
+                score: player.score
+            });
+
+            // Broadcast updated participant list to admin
+            io.to(gameCode).emit('participants_update', game.players.map(p => ({
+                id: p.id,
+                name: p.name,
+                score: p.score,
+                hasAnswered: p.hasAnswered,
+                isHost: p.isHost || false
+            })));
 
             // Kirim feedback ke player ini saja
             socket.emit('answer_result', {

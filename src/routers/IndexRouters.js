@@ -81,6 +81,35 @@ module.exports = function () {
         });
     });
 
+    // Admin Live Quiz Monitor
+    router.get('/admin/live/:gameCode', (req, res) => {
+        const gameCode = req.params.gameCode;
+
+        // Check if user is logged in and is the host
+        if (!req.session.host_id) {
+            return res.redirect('/login');
+        }
+
+        res.render('admin-live', {
+            req,
+            res,
+            gameCode: gameCode
+        }, (err, html) => {
+            if (err) return res.status(500).send(err.message);
+
+            const obfuscatedHTML = obfuscateInlineScripts(html);
+
+            const minifiedHtml = minify(obfuscatedHTML, {
+                collapseWhitespace: true,
+                removeComments: true,
+                minifyCSS: true,
+                ignoreCustomFragments: [/<%[\s\S]*?%>/]
+            });
+
+            res.send(minifiedHtml);
+        });
+    });
+
     // Rute Login
     router.get('/login', (req, res) => {
         res.render('login', { req, res }, (err, html) => {

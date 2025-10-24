@@ -16,26 +16,57 @@ function quizGame(gameCode) {
     return {
         // State
         gameCode: gameCode,
+        quizTitle: 'Playing Quiz',
         currentQuestionId: null, // Track ID pertanyaan saat ini
         questionText: 'Menunggu pertanyaan...', 
         answers: [],
         timer: 0,
         score: 0,
+        tempScore: 0, // Temporary score untuk perhitungan
         isAnswered: false,
         message: '',
         timerInterval: null,
         selectedAnswer: null,
 
+        pingLatency: null, // Latency hasil ping ke server
+
         // Fungsi init dipanggil oleh Alpine saat komponen dimuat
         init() {
             console.log('Alpine.js init, gameCode:', this.gameCode);
 
+
+            // Listener untuk respons ping dari server
+            socket.on('pong_user', (data) => {
+                if (data && typeof data.pingSentAt === 'number') {
+                    const now = Date.now();
+                    this.pingLatency = now - data.pingSentAt;
+                } else {
+                    this.pingLatency = null;
+                }
+            });
+
+            // Ping server setiap 2 detik
+            this._pingInterval = setInterval(() => {
+                socket.emit('ping_user', { pingSentAt: Date.now(), gameCode: this.gameCode });
+            }, 2000);
+
             // 1. Beritahu server kita sudah masuk halaman kuis
             socket.emit('player_joined_quiz', { gameCode: this.gameCode });
+
+            // 1.1 Terima informasi game (judul kuis dsb.)
+            socket.on('game_info', (data) => {
+                if (data && data.quizTitle) {
+                    this.quizTitle = data.quizTitle;
+                }
+            });
 
             // 2. Listener untuk pertanyaan baru
             socket.on('game_question', (data) => {
                 console.log('Pertanyaan baru diterima:', data);
+                // Set title jika belum tersedia (fallback)
+                if (data.quizTitle && (!this.quizTitle || this.quizTitle === 'Playing Quiz')) {
+                    this.quizTitle = data.quizTitle;
+                }
                 this.currentQuestionId = data.question_id; // Simpan ID pertanyaan saat ini
                 this.questionText = data.question_text;
                 this.answers = shuffleArray(data.answers); // Acak urutan jawaban untuk setiap klien
@@ -54,10 +85,9 @@ function quizGame(gameCode) {
                 console.log('Score baru:', data.score);
                 console.log('Correct Answer ID:', data.correctAnswerId);
                 console.log('========================================================');
-                
-                // Update score langsung tapi JANGAN tampilkan hasil
-                this.score = data.score;
-                
+                // JANGAN update score di sini, tunggu sampai question_result
+                // Simpan sementara untuk perhitungan nanti
+                this.tempScore = data.score;
                 // HANYA tampilkan "Menunggu pemain lain..."
                 this.message = '⏳ Menunggu pemain lain menjawab...';
             });
@@ -68,22 +98,18 @@ function quizGame(gameCode) {
                 console.log('Hasil jawaban dari server:', data);
                 console.log('isCorrect:', data.isCorrect);
                 console.log('Score baru:', data.newScore);
-                console.log('Score saya sekarang:', this.score);
+                console.log('Score lama saya:', this.score);
                 console.log('==============================================');
-                
                 this.isAnswered = true; // Kunci jawaban
-                
                 // TAMPILKAN hasil setelah semua selesai
                 if (data.isCorrect) {
-                    const pointsEarned = data.newScore - this.score;
+                    const pointsEarned = data.newScore - this.score; // Hitung dari score LAMA
                     this.message = '✅ Jawaban Benar! +' + pointsEarned + ' poin';
                 } else {
                     // Jangan tampilkan "+0 poin" untuk jawaban salah
                     this.message = '❌ Jawaban Salah!';
                 }
-                
-                this.score = data.newScore; // Update skor dari server
-                
+                this.score = data.newScore; // Update skor dari server SETELAH perhitungan
                 // Stop timer
                 if (this.timerInterval) {
                     clearInterval(this.timerInterval);
@@ -93,12 +119,10 @@ function quizGame(gameCode) {
             // 5. Listener untuk game over
             socket.on('game_over', (data) => {
                 console.log('Game selesai! Skor akhir:', data.finalScores);
-                
                 // Stop timer
                 if (this.timerInterval) {
                     clearInterval(this.timerInterval);
                 }
-                
                 // Tampilkan hasil
                 this.showGameOverScreen(data.finalScores);
             });
@@ -109,6 +133,8 @@ function quizGame(gameCode) {
                 this.message = 'Error: ' + data.message;
             });
         },
+
+        // Method untuk ping server (tidak dipakai lagi, ping otomatis)
 
         // Method untuk mengirim jawaban
         submitAnswer(answerId) {

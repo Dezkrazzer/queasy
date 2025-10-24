@@ -175,15 +175,22 @@
         });
 
         // 3. Konfirmasi bahwa kita adalah host
+        let isHost = false;
         socket.on('you_are_host', () => {
             console.log('Server mengonfirmasi: Saya adalah host');
+            isHost = true;
             hostControls.classList.remove('hidden');
         });
         
         // 4. Game dimulai oleh host!
         socket.on('game_started', () => {
-            console.log('Game dimulai, redirect ke halaman quiz...');
-            window.location.href = `/quiz/${gameCode}`;
+            if (isHost) {
+                console.log('Saya adalah host, redirect ke admin live monitor...');
+                window.location.href = `/admin/live/${gameCode}`;
+            } else {
+                console.log('Saya adalah player, redirect ke halaman quiz...');
+                window.location.href = `/quiz/${gameCode}`;
+            }
         });
 
         // 5. Jika game tidak ditemukan (misal salah URL)

@@ -22,14 +22,24 @@
             
             <!-- Center: Quiz Name -->
             <div class="text-center">
-                <h1 class="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
+                <h1 class="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent" x-text="quizTitle">
                     Queasy Quiz
                 </h1>
             </div>
             
             <!-- Right: Timer -->
             <div class="text-right">
-                <span class="text-lg font-semibold text-white" x-text="timer + 's'"></span>
+                <span class="text-lg font-semibold flex items-center gap-1"
+                      x-show="pingLatency !== null"
+                      :class="{
+                        'text-green-400': pingLatency >= 10 && pingLatency < 100,
+                        'text-yellow-400': pingLatency >= 100 && pingLatency <= 300,
+                        'text-red-500': pingLatency > 300
+                      }"
+                >
+                    <i data-feather="wifi" class="w-5 h-5"></i>
+                    <span x-text=" pingLatency + 'ms'"></span>
+                </span>
             </div>
         </div>
     </nav>
